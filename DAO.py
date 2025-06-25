@@ -61,3 +61,67 @@ def getConnection(retailer1, year, nation, retailer2):
             cursor.close()
             cnx.close()
         return result
+
+
+#esempio di query molto complessa da Esame-del-30-06-2021-Pomeriggio-
+def getEdges(self):
+    cnx = DBConnect.get_connection()
+    result = []
+    if cnx is None:
+        print("Connessione fallita")
+    else:
+        cursor = cnx.cursor(dictionary=True)
+        query = """select t.l1, t.l2, count(distinct(t.type)) as weight
+                    from
+                        (select c.Localization as l1, c2.Localization as l2, i.`Type` as type
+                        from genes_small.classification c, genes_small.interactions i, genes_small.classification c2
+                        where c.GeneID = i.GeneID1
+                                and c2.GeneID = i.GeneID2
+                                and c.Localization > c2.Localization
+                        union ALL
+                        select c.Localization as l1, c2.Localization as l2, i.`Type` as type
+                        from genes_small.classification c, genes_small.interactions i, genes_small.classification c2
+                        where c.GeneID = i.GeneID2
+                                and c2.GeneID = i.GeneID1
+                                and c.Localization > c2.Localization) as t
+                    group by t.l1, t.l2
+
+                    """
+        cursor.execute(query, )
+
+        for row in cursor:
+            result.append((row["l1"], row["l2"], row["weight"]))
+        cursor.close()
+        cnx.close()
+    return result
+
+
+#esempio di query difficile da Esame-del-30-06-2021-Mattino-
+@staticmethod
+def getEdges():
+    cnx = DBConnect.get_connection()
+    result = []
+    if cnx is None:
+        print("Connessione fallita")
+    else:
+        cursor = cnx.cursor(dictionary=True)
+        query = """select t.c1, t.c2, sum(t.weight) as weight
+                    from
+                        (select g.Chromosome as c1, g2.Chromosome as c2, i.Expression_Corr as weight, i.Type
+                        from genes_small.genes g, genes_small.interactions i, genes_small.genes g2 
+                        where g.GeneID = i.GeneID1 
+                            and g2.GeneID = i.GeneID2
+                            and i.GeneID1 <> i.GeneID2
+                            and g.Chromosome > 0
+                            and g2.Chromosome > 0
+                            and g.Chromosome <> g2.Chromosome
+                        group by g.Chromosome, g2.Chromosome, i.Expression_Corr, i.Type) as t
+                    group by t.c1, t.c2
+                        """
+        cursor.execute(query, )
+
+        for row in cursor:
+            result.append((row["c1"], row["c2"], row["weight"]))
+        cursor.close()
+        cnx.close()
+        return result
